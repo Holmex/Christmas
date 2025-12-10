@@ -1,0 +1,48 @@
+            // 星星位置
+            if (logicData.star) {
+                let target = currentState === STATE.TREE ? logicData.star.userData.treePos : logicData.star.userData.scatterPos;
+                logicData.star.position.lerp(target, 0.05);
+                logicData.star.rotation.y += 0.01;
+            }
+
+            // --- 文字动画 (风铃效果) ---
+            if (floatingTexts.length > 0) {
+                floatingTexts.forEach(mesh => {
+                    if (showText && currentState === STATE.TREE) {
+                        // 1. 状态过渡：渐显 & 放大
+                        // 材质是共享的，改变一个会改变两个，这是预期的
+                        mesh.material.opacity = THREE.MathUtils.lerp(mesh.material.opacity, 1, 0.01);
+                        
+                        // 2. 物理模拟：风铃摇曳算法
+                        // time * speed + phase
+                        const t = time + mesh.userData.phase;
+
+                        // [位置动画] 缓慢浮动归位
+                        // 目标Y值加上正弦波浮动 (上下漂浮)
+                        const floatY = Math.sin(t * 1.5) * 2; 
+                        const targetY = mesh.userData.basePos.y + floatY;
+                        
+                        mesh.position.y = THREE.MathUtils.lerp(mesh.position.y, targetY, 0.05);
+                        mesh.position.x = THREE.MathUtils.lerp(mesh.position.x, mesh.userData.basePos.x, 0.05);
+                        mesh.position.z = THREE.MathUtils.lerp(mesh.position.z, mesh.userData.basePos.z, 0.05);
+                        mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.02);
+
+                        // [旋转动画] 模拟风吹摇摆
+                        // Z轴旋转：左右轻微摆动 (像钟摆)
+                        mesh.rotation.z = Math.sin(t * 1.2) * 0.1; // 幅度 0.1 弧度
+                        // Y轴旋转：轻微扭转
+                        mesh.rotation.y = Math.sin(t * 0.8) * 0.15;
+                        // X轴旋转：轻微前后倾斜
+                        mesh.rotation.x = Math.sin(t * 1.0) * 0.05;
+
+                    } else {
+                        // 隐藏状态：缩小并渐隐
+                        mesh.material.opacity = THREE.MathUtils.lerp(mesh.material.opacity, 0, 0.05);
+                        mesh.scale.lerp(new THREE.Vector3(0.5, 0.5, 0.5), 0.05);
+                        mesh.position.y = THREE.MathUtils.lerp(mesh.position.y, -50, 0.05); // 沉下去
+                    }
+                });
+            }
+
+            // --- 物理惯性与状态逻辑 ---
+            if (currentState === STATE.SCATTER) {
